@@ -1,0 +1,14 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "user1",
+      "passwordHash": "$2a$10$lP9v3QY2kjMfrHQ7OrvTZedn6E.teFict6nhBl244xow7shhBsyae"
+    },
+    {
+      "id": 2,
+      "username": "user2",
+      "passwordHash": "$2a$10$lP9v3QY2kjMfrHQ7OrvTZedn6E.teFict6nhBl244xow7shhBsyae"
+    }
+  ]
+}
