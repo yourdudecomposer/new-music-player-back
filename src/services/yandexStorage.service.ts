@@ -62,7 +62,7 @@ export const listUserFiles = async (userFolder: string) => {
       const signedUrl = await s3.getSignedUrlPromise('getObject', {
         Bucket: BUCKET_NAME,
         Key: item.Key!,
-        Expires: 3600, // URL будет действителен 1 час
+        Expires: 86400, // URL будет действителен 1 день
       });
 
       return {
