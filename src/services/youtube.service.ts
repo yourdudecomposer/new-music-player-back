@@ -55,7 +55,7 @@ export async function downloadYoutubeAsMp3(url: string): Promise<{
         resolve();
       });
       
-      response.data.on('error', (error) => {
+      response.data.on('error', (error: Error) => {
         console.error('Download stream error:', error);
         reject(error);
       });
