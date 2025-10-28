@@ -2,13 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import { verifyToken } from '../middleware/auth.middleware';
 import { uploadFile, listUserFiles, deleteFile } from '../services/yandexStorage.service';
-import { 
-  getVideoInfo, 
-  downloadYoutubeAsMp3, 
-  readFileToBuffer, 
-  deleteTempFile 
-} from '../services/youtube.service';
-import path from 'path';
+import { downloadYoutubeAsMp3 } from '../services/youtube.service';
 
 const router = Router();
 
@@ -61,71 +55,46 @@ router.post('/youtube', verifyToken, async (req, res) => {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    const { url, customTitle } = req.body;
+    const { url } = req.body;
+    
     if (!url) {
       return res.status(400).json({ message: 'YouTube URL is required' });
-    }
-    if (!customTitle) {
-      return res.status(400).json({ message: 'Custom title is required' });
     }
 
     const username = req.user.username;
 
-    console.log('Получаем информацию о видео...');
-    // const videoInfo = await getVideoInfo(url, customTitle);
+    // Download audio from YouTube
+    const { buffer, title, filename } = await downloadYoutubeAsMp3(url);
 
-    const videoInfo = {
-      title: customTitle,
-    }
-    console.log('Видео:', videoInfo.title);
-
-    // Создаем безопасное имя файла
-    const safeTitle = videoInfo.title
-      .replace(/[^a-z0-9]/gi, '_')
-      .toLowerCase()
-      .substring(0, 50);
-    const fileName = `${safeTitle}.mp3`;
-
-    console.log('Скачиваем и конвертируем видео...');
-    const tempFilePath = await downloadYoutubeAsMp3(url, fileName);
-
-    console.log('Читаем файл в buffer...');
-    const fileBuffer = await readFileToBuffer(tempFilePath);
-
-    console.log('Загружаем в Yandex Storage...');
-    // Создаем объект файла для multer
+    // Create a multer-compatible file object
     const file: Express.Multer.File = {
       fieldname: 'track',
-      originalname: fileName,
+      originalname: filename,
       encoding: '7bit',
       mimetype: 'audio/mpeg',
-      size: fileBuffer.length,
-      buffer: fileBuffer,
+      buffer: buffer,
+      size: buffer.length,
       destination: '',
-      filename: '',
-      path: '',
-      stream: null as any,
+      filename: filename,
+      path: filename,
+      stream: require('stream').Readable.from(buffer),
     };
 
+    // Upload to Yandex Storage
     const fileUrl = await uploadFile(file, username);
 
-    // Удаляем временный файл
-    await deleteTempFile(tempFilePath);
-
-    console.log('✅ Успешно загружено в хранилище');
-
     res.status(201).json({
-      message: 'Video downloaded and uploaded successfully',
+      message: 'YouTube audio downloaded and uploaded successfully',
       url: fileUrl,
-      name: fileName,
-      title: videoInfo.title,
+      name: filename,
+      title: title,
       uploadedAt: new Date().toISOString(),
     });
-  } catch (error) {
-    console.error('Error downloading from YouTube:', error);
+  } catch (error: any) {
+    console.error('YouTube download error:', error);
     res.status(500).json({ 
-      message: 'Failed to download from YouTube',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      message: 'Failed to download YouTube audio',
+      error: error.message || 'Unknown error'
     });
   }
 });

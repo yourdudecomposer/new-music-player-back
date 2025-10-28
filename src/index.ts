@@ -14,6 +14,12 @@ const PORT = process.env.PORT || 4000;
 app.use(cors()); // Разрешаем кросс-доменные запросы
 app.use(express.json()); // Для парсинга JSON-тел запросов
 
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.path}`);
+  next();
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/tracks', trackRoutes);
