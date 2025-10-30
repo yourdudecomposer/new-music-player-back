@@ -9,12 +9,6 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 router.post('/login', (req, res) => {
   const { username, password } = req.body;
   
-  const passwordHash = bcrypt.hashSync(password, 10);
-  console.log(
-    'passwordHash', passwordHash
-  );
-  
-
   if (!username || !password) {
     return res.status(400).json({ message: 'Username and password are required' });
   }
