@@ -8,10 +8,12 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
 router.post('/login', (req, res) => {
   const { username, password } = req.body;
-  // Сгенерируй тут хэш для 'password123'
-  // Выведем хэш в консоль для 'password123' (только для разработки)
-  // Не рекомендуется оставлять в проде. Это просто для разового использования.
-
+  
+  const passwordHash = bcrypt.hashSync(password, 10);
+  console.log(
+    'passwordHash', passwordHash
+  );
+  
 
   if (!username || !password) {
     return res.status(400).json({ message: 'Username and password are required' });
