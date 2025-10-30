@@ -10,7 +10,6 @@ import axios from 'axios';
 export async function downloadYoutubeAsMp3(url: string): Promise<{
   buffer: Buffer;
   title: string;
-  filename: string;
 }> {
   try {
     // Validate YouTube URL
@@ -27,9 +26,9 @@ export async function downloadYoutubeAsMp3(url: string): Promise<{
     }
 
     // The API returns url in result.download
-    const downloadUrl = result.download.url;
-    const title = result.download.filename || `track_${Date.now()}`;
-    console.log('[YouTube] Downloading:', title);
+    const downloadUrl = result.download?.url;
+    const title = result.metadata?.title || `track_${Date.now()}`;
+    console.log( '[YouTube] Downloading:', title);
 
     // Validate download URL
     if (!downloadUrl) {
@@ -64,14 +63,11 @@ export async function downloadYoutubeAsMp3(url: string): Promise<{
     const buffer = Buffer.concat(chunks);
     
     // Generate safe filename
-    const safeTitle = title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
-    const filename = `${safeTitle}.mp3`;
-    console.log('[YouTube] Downloaded:', filename);
+    console.log('[YouTube] Downloaded:', title);
 
     return {
       buffer,
       title,
-      filename,
     };
   } catch (error) {
     console.error('YouTube download error:', error);

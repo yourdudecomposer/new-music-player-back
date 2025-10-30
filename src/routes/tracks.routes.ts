@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { verifyToken } from '../middleware/auth.middleware';
-import { uploadFile, listUserFiles, deleteFile } from '../services/yandexStorage.service';
+import { uploadFile, listUserFiles, deleteFile, renameFile } from '../services/yandexStorage.service';
 import { downloadYoutubeAsMp3 } from '../services/youtube.service';
 
 const router = Router();
@@ -64,19 +64,19 @@ router.post('/youtube', verifyToken, async (req, res) => {
     const username = req.user.username;
 
     // Download audio from YouTube
-    const { buffer, title, filename } = await downloadYoutubeAsMp3(url);
+    const { buffer, title } = await downloadYoutubeAsMp3(url);
 
     // Create a multer-compatible file object
     const file: Express.Multer.File = {
       fieldname: 'track',
-      originalname: filename,
+      originalname: title,
       encoding: '7bit',
       mimetype: 'audio/mpeg',
       buffer: buffer,
       size: buffer.length,
       destination: '',
-      filename: filename,
-      path: filename,
+      filename: title,
+      path: title,
       stream: require('stream').Readable.from(buffer),
     };
 
@@ -86,7 +86,7 @@ router.post('/youtube', verifyToken, async (req, res) => {
     res.status(201).json({
       message: 'YouTube audio downloaded and uploaded successfully',
       url: fileUrl,
-      name: filename,
+      name: title,
       title: title,
       uploadedAt: new Date().toISOString(),
     });
@@ -112,6 +112,31 @@ router.delete('/:filename', verifyToken, async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Failed to delete file' });
+  }
+});
+
+// Переименовать трек
+router.patch('/:filename/rename', verifyToken, async (req, res) => {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+    const username = req.user.username;
+    const { filename } = req.params;
+    const { newName } = req.body as { newName?: string };
+
+    if (!newName || typeof newName !== 'string' || !newName.trim()) {
+      return res.status(400).json({ message: 'newName is required' });
+    }
+
+    const result = await renameFile(filename, newName.trim(), username);
+    return res.status(200).json({
+      message: 'File renamed successfully',
+      oldName: result.oldName,
+      newName: result.newName,
+      key: result.key,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to rename file' });
   }
 });
 

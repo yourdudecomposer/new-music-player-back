@@ -24,7 +24,7 @@ const BUCKET_NAME = process.env.YA_BUCKET;
  * @returns Промис, который разрешается в ключ (имя) загруженного объекта.
  */
 export const uploadFile = async (file: Express.Multer.File, userFolder: string): Promise<string> => {
-  const fileName = `${userFolder}/${Date.now()}-${file.originalname.replace(/\s/g, '_')}`;
+  const fileName = `${userFolder}/${Date.now()}-${file.originalname}`;
 
   const params = {
     Bucket: BUCKET_NAME,
@@ -103,4 +103,57 @@ export const deleteFile = async (fileName: string, userId: string): Promise<{ su
     // Пробрасываем ошибку выше, чтобы ее поймал блок catch в роутере
     throw error;
   }
+};
+
+/**
+ * Переименовать файл в Yandex Object Storage (реализуется как copy + delete).
+ * @param oldName - старое имя файла (без префикса папки пользователя)
+ * @param newName - новое имя файла (без префикса папки пользователя)
+ * @param userId - идентификатор/папка пользователя
+ */
+export const renameFile = async (
+  oldName: string,
+  newName: string,
+  userId: string
+): Promise<{ oldName: string; newName: string; key: string }> => {
+  const sanitize = (name: string) => name.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+  const safeOldName = sanitize(oldName);
+  let safeNewName = sanitize(newName);
+
+  // Не позволяем переходить в подпапки и наверх по дереву
+  if (safeOldName.includes('..') || safeNewName.includes('..')) {
+    throw new Error('Invalid file name');
+  }
+
+  // База нового имени: пользователь вводит имя без даты-префикса
+  // Удаляем возможное расширение из ввода (расширение возьмём из старого файла)
+  const inputBase = safeNewName.replace(/\.[^./]+$/, '');
+  const oldExtMatch = safeOldName.match(/\.[^./]+$/);
+  const oldExt = oldExtMatch ? oldExtMatch[0] : '';
+
+  const oldKey = `${userId}/${safeOldName}`;
+  const timestamp = Date.now();
+  const finalNewName = `${timestamp}-${inputBase}${oldExt}`;
+  const newKey = `${userId}/${finalNewName}`;
+
+  if (oldKey === newKey) {
+    return { oldName: safeOldName, newName: finalNewName, key: newKey };
+  }
+
+  // Конфликтов не проверяем — новый ключ включает новый timestamp
+
+  // Копируем объект на новый ключ
+  await s3
+    .copyObject({
+      Bucket: BUCKET_NAME,
+      CopySource: `/${BUCKET_NAME}/${oldKey}`,
+      Key: newKey,
+      MetadataDirective: 'COPY',
+    })
+    .promise();
+
+  // Удаляем старый объект
+  await s3.deleteObject({ Bucket: BUCKET_NAME, Key: oldKey }).promise();
+
+  return { oldName: safeOldName, newName: finalNewName, key: newKey };
 };
