@@ -17,6 +17,6 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction) => 
     req.user = decoded; // Добавляем данные пользователя в запрос
     next();
   } catch (error) {
-    res.status(400).json({ message: 'Invalid Token' });
+    res.status(401).json({ message: 'Invalid Token' });
   }
 };

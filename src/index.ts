@@ -1,11 +1,11 @@
+import dotenv from 'dotenv';
+// Загружаем переменные окружения ПЕРВЫМ делом, до всех остальных импортов
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
 import trackRoutes from './routes/tracks.routes';
-
-// Загружаем переменные окружения
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
