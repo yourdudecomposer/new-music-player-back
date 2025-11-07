@@ -34,7 +34,7 @@ router.post('/login', (req, res) => {
 
   // Генерируем Refresh Token (длинный срок - 1 дней)
   const refreshToken = jwt.sign({ username: user.username }, REFRESH_TOKEN_SECRET, {
-    expiresIn: '1d',
+    expiresIn: '30m',
   });
 
   console.log(refreshToken);
@@ -65,7 +65,7 @@ router.post('/refresh', (req, res) => {
     });
 
     const newRefreshToken = jwt.sign({ username: user.username }, REFRESH_TOKEN_SECRET, {
-      expiresIn: '1d',
+      expiresIn: '30m',
     });
 
     res.json({ token: accessToken, refreshToken: newRefreshToken });
